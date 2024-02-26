@@ -15,7 +15,7 @@ sidebar:              # 페이지 왼쪽에 카테고리 지정
 # 2. Forward Propagation
 입력층에서 출력층 방향으로 오차를 전파시키며 각 층의 가중치를 업데이트하는 방법입니다.
 
-![alt text](순전파-1.jpg)
+![Alt text](E:/공부/Github/blog/images/Propagation/순전파-1.jpg)
 
 
 위 그림에서 확인할 수 있듯이, 입력층에서 출력층으로 연산을 진행하며 가중치와 기울기를 계산합니다. 이 과정에서 Hidden layer의 수가 증가하면 할수록 필요한 연산의 수는 기하급수적으로 증가합니다.
