@@ -280,17 +280,17 @@ compress_html:
 # Defaults
 defaults:
   # _posts
-  - scope:
-      path: ""
-      type: posts
-    values:
-      layout: single
-      author_profile: true
-      read_time: true
-      comments: # true
-      share: true
-      related: true
-      show_date: true
+  -scope:
+    path: ""
+    type: posts
+  values:
+    layout: single
+    author_profile: true
+    read_time: true
+    comments: # true
+    share: true
+    related: true
+    show_date: true
 
 
   date_format: "%Y-%m-%d"
