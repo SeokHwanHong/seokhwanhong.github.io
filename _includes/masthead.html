@@ -28,6 +28,10 @@
           <span class="visually-hidden">{{ site.data.ui-text[site.locale].menu_label | default: "Toggle menu" }}</span>
           <div class="navicon"></div>
         </button>
+
+        {% if page.use_math %}
+          {% include mathjax_suppor.html %}
+        {% endif %} 
         <ul class="hidden-links hidden"></ul>
       </nav>
     </div>

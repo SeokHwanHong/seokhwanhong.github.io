@@ -1,6 +1,6 @@
 ---
 layout: single        # 문서 형식
-title: 'Generative Adversarial Nets 리뷰'         # 제목
+title: 'Swin Transformer : Heierarchical Vision Transformer using Shifted Windows 리뷰'         # 제목
 categories: Generative Model    # 카테고리
 toc: true             # 글 목차
 author_profiel: false # 홈페이지 프로필이 다른 페이지에도 뜨는지 여부
@@ -9,56 +9,104 @@ sidebar:              # 페이지 왼쪽에 카테고리 지정
 #search: false # 블로그 내 검색 비활성화
 ---
 # Keywords
-generative model, adversarial net,
-
+dd
 
 
 # 1. Introduction
-#### - 딥러닝의 목표
-딥러닝의 기본적인 목표는 인공지능을 적용을 위한 데이터의 확률 분포에서 풍부한 계층적 모델을 발견하는 것이다. 딥러닝에서 가장 두드러진 성공은 보통 고차원적이고 풍부한 감각 입력을 클래스 레이블로 매핑하는 판별 모델과 관련되어왔다. 그리고 이 성공은 주로 잘 작동하는 gradient를 가지고 있는 구간별 선형 유닛을 사용하는 역전파나 dropout 알고리즘 등에 기반한다.
-#### - 기존 생성모델의 어려움
-반면에 생성모델은 MLE 등에 대한 많은 완고한 확률적 계산을 추정하는 어려움과 생성 context에 대한 구간별 선형 유닛의 이점을 활용하기 어려움이 있기에 상대적으로 영향력이 적었다.
-#### - 본 논문의 신경망
-본 논문의 적대적 신경망에서, 생성 모델은 데이터 분포로부터 생성하고 판별 모델은 모델 분포나 데이터 분포에서 데이터가 생성되었는지를 결정하는 것을 학습한다. 그리고 이 둘을 통해 역전파 및 최적화를 진행한다. 이 때, 기존에 사용하는 근사 추론이나 Markov chain 등은 필요하지 않다. 
+#### - CNN
+컴퓨터 비전에서의 모델들은 주로 CNN 기반이 많았음
+그리고 CNN architecture들은 더 정교하고 더 복잡하고 더 크고 확장이 가능한 연결형태를 만듦으로써 convolution 형태를 진화시켜왔음
+다양한 vision task에서 cnn은 backbone network로 많이 사용되어왔고 많은 분야에서 향상된 성능을 보임
+
+#### - NLP
+주로 transformer 기반으로 많이 사용
+성능이 좋아서 이를 컴퓨터 비전에도 적용하려는 시도가 있어왔음
+
+#### - nlp에서의 성능을 vision에서도 적용이 가능한가
+이 논문에서 저자들은 컴퓨터 비전에서 일반적인 목적으로써 사용가능하도록 Transformer의 적용가능성을 확장시키고자함
+nlp에서 사용하는 transfomer를 vision에도 적용시키기에는 어려움
+이유 1. scale
+이유 2. text보다 image pixel이 더 많은 해상도(정보)를 포함
+위 어려움들을 극복하고자 Swin Transformer 제안
+
+#### - Swin Transformer 의 구조에 대한 간략한 설명
+계층적 feature map과 이미지 크기에 대한 선형 계산적 복잡도로 구성
+계층적 feature map 덕분에 dense prediction에 대한 고급 기술들 적용 가능.
+선형 계산 복잡도는 이미지를 겹치지 않는 패치별로 잘라 부분마다 self-attention을 적용함으로써 계산이 가능함.
+window마다 patch 수 고정 -> 선형적인 계산 복잡도가 도출
+
+#### - Swin Transformer 의 구조 중 핵심 설계
+핵심 디자인 : 연속적인 self attention 층간 window partition의 shift
+효과 1. 층간 연결성으로 인해 모델링 파워 강화
+효과 2. 실제 세계에서의 연산량에 영향 -> experiment 보면 모델의 파워는 비슷한데 연산량은 더 적음
+
+#### - 그래서 어느 분야에서 강점?
+image classification, object detection, sementic segmentation 등
 
 
 
-# 2. Adversarial Nets
-## 2.1. Notation
-$\bold{x}$ : 원본 데이터
-$\bold{z}$ : input noise variable
-$p_g$ : 생성모델 분포
-$p_\bold{z}(\bold{z})$ : input noise variables 에 대한 사전 분포
-$G$ : 생성 모델, 모수가 $\theta_g$인 다층 퍼셉트론으로 구성된 미분 가능한 함수 
-$G(\bold{z} ;\theta_g)$ : noise variable로 구성된 공간 -> 생성한 이미지의 분포
-$D(\bold{x})$ : 판별 모델, $p_g$가 아닌 $\bold{x}$에서 추출되었을 확률분포
-$D(\bold{x} ;\theta_g)$ : 원본 데이터로 구성된 공간 -> 출력 결과가 단일 스칼라인 두번째 다층 퍼셉트론 
+# 2.Methods
+## 2.1. Overall Architecture
+<p align = "center"><img scr = "E:\공부\Github\blog\images\SwinTransformer\figure3.jpg" >
+
+#### - Input
+<p align = "center"><img scr = "E:\공부\Github\blog\images\SwinTransformer\figure3-1.jpg" weight=100 height = 100 >
+
+이미지들을 ViT의 patch들처럼 겹치지 않게 각각 RGB채널마다 나눔
+이 떄 각 패치들은 토큰으로 간주되고 이에 대한 feature map은 raw pixel RGB값의 결합?임
+여기서는 패치크기를 4x4로 설정해 각 패치마다 feature 차원은 4x4x3(RGB channel)로 구성 
+이를 linear embedding 층에 적용하는데 arbitrary dimension $C$로 사영(삽입)함. 
+변형된 self-attention 계산(Swin Transformer block)을 이용한 여러 Transformer block들에 앞서 구성한 패치들을 적용한다. 
+이때 Transformer block들의 크기는 토큰의 개수인 $\frac{H}{4}$x$\frac{W}{4}$ 이고 이를 Stage1이라고 지칭한다.
+
+
+#### - Hierarchcial Feature Map
+이제 전체적인 구성에서 계층적인 feature map을 구성해야 하므로 신경망이 깊어짐에 따라 patch들을 합쳐 토큰의 수를 감소시켜야한다.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 ## 2.2. Objects
 #### - Generative model $G$ 
 원래 데이터 $x$의 분포를 근사할 수 있도록 학습한다. 만약 학습이 잘 되었다면 통계적으로 평균적인 특징을 가지는 데이터를 쉽게 생성 가능하다.
 
-#### - Discriminative model $D$
+#### - Discriminator model $D$
 데이터가 원래 데이터 $x$의 분포에서 나온 것인지, 아니면 $G$의 분포에서 나온 것인지 판별하도록 학습한다. 출력 결과가 1(진짜) 또는 0(가짜)으로 판별한다.
 
 #### - 목표
 ![alt text](figure1.jpg) 
-<img src = "E:\공부\Github\blog\images\GAN\figure1 설명.jpg" width="150" height = "50">
-(a) -> (d) 로 시간의 흐름에 따라 진행하면서 생성 모델의 분포가 원본 데이터의 분포를 학습한다.
+<p align = "center"><img src = "E:\공부\Github\blog\images\GAN\figure1 설명.jpg" width="150" height = "50">
+
+(a) -> (d) 로 시간의 흐름에 따라 진행하면서 생성 모델의 분포가 원본 데이터의 분포를 학습하는 것을 목표로 한다.
 
 
 ## 2.3. Objective Function
-Objective Function : $min \atop G$ $ max \atop D$ $V(D,G) = \mathbb{E}_{\bold{x} \sim p_{data}({\bold{x}})} [logD(\bold{x})] + \mathbb{E}_{\bold{z} \sim p_{\bold{z}}({\bold{z}})} [1-logD(G(\bold{z}))]$ 
+$min \atop G$ $ max \atop D$ $V(D,G) = \mathbb{E}_{\bold{x} \sim p_{data}({\bold{x}})} [logD(\bold{x})] + \mathbb{E}_{\bold{z} \sim p_{\bold{z}}({\bold{z}})} [1-logD(G(\bold{z}))]$ 
 
 $\mathbb{E}_{\bold{x} \sim p_{data}({\bold{x}})} [logD(\bold{x})] $ : 원본 데이터 분포에서 샘플 $x$를 뽑아 $logD(x)$의 기댓값을 계산 
     -> 원본 데이터가 진짜(1)인지 가짜(0)인지 구분
-    -> $max \atop D$ : 기댓값이 1이 나오도록 구성
+    -> $max \atop D$ : 기댓값이 0이 나오도록 구성
 
-$\mathbb{E}_{\bold{z} \sim p_{\bold{z}}({\bold{z}})} [1-logD(\bold{z})]$ : noise variable 분포에서 샘플 $z$를 뽑아 $1-logD(G(z))$의 기댓값을 계산 
+$\mathbb{E}_{\bold{z} \sim p_{\bold{z}}({\bold{z}})} [1-logD(G(\bold{z}))]$ : noise variable 분포에서 샘플 $z$를 뽑아 $1-logD(G(z))$의 기댓값을 계산 
     -> 생성모델을 이용해 만든 이미지가 진짜(1)인지 가짜(0)인지 구분 
     -> $D(G(z))$ = 1 -> 기댓값 감소, $D(G(z))$ = 0 -> 기댓값 증가
-    -> $min \atop G$ : 기댓값이 1이 나오도록 구성
+    -> $min \atop G$ : 기댓값이 0이 나오도록 구성
 
 
 
@@ -68,14 +116,14 @@ $\mathbb{E}_{\bold{z} \sim p_{\bold{z}}({\bold{z}})} [1-logD(\bold{z})]$ : noise
 ![alt text](algorithm1.jpg)
 
 ## 3.1. Global Optimality of $p_g = p_\bold{data}$
+(생성한 이미지와 원본 이미지를 구별하지 않는 경우 또는 구별되지 않는 경우 고려)
 #### - Proposition 1 : Optimal Discriminator
-For $G$ fixed, the optimal discriminator D is 
+고정된 $G$에 대해, 최적의 판별자 D는 다음과 같다. 
 $D^{*}_G(\bold{x}) = p_\bold{data}(\bold{x}) / (p_\bold{data}(\bold{x}) + p_g(\bold{x}))$
 
-$Proof$. Given any generator G,
-$V(G,D) = \int_{\bold{x}}p_{data}(\bold{x})log(D(\bold{x})) dx + \int_{\bold{z}}p_{\bold{z}}(\bold{z})log(1-D(g(\bold{x}))) dz$
- = $\int_{\bold{x}}p_{data}(\bold{x})log(D(\bold{x})) + p_{g}(\bold{x})log(1-D(\bold{x}))dx$  
- ($\because g(\bold{z}) = \bold{x} $  if  $ p_g = p_\bold{data}$ -> 이미지에 대한 labeling 구분 x)
+$Proof$. 주어진 어떤 $G$에 대해,
+$V(G,D) = \int_{\bold{x}}p_{data}(\bold{x})log(D(\bold{x})) dx + \int_{\bold{z}}p_{\bold{z}}(\bold{z})log(1-D(g(\bold{x}))) dz$ = $\int_{\bold{x}}p_{data}(\bold{x})log(D(\bold{x})) + p_{g}(\bold{x})log(1-D(\bold{x}))dx$
+($\because g(\bold{z}) = \bold{x} $  if  $ p_g = p_\bold{data}$ -> 이미지에 대한 labeling 구분 x)
 
 For any (a,b) $\in \mathbb{R}^2 $ \ {0,0}, the function $F(y) = alog(y) + blog(1-y)$는 $a/(a+b)$ 에서 최대값 [0,1]을 가진다. 따라서 판별 모형은 $Supp(p_{data}) \bigcup Supp(p_{g})$ 에서만 정의되므로 증명이 된다.
 
@@ -84,14 +132,14 @@ For any (a,b) $\in \mathbb{R}^2 $ \ {0,0}, the function $F(y) = alog(y) + blog(1
 $ C(G) $= $ max \atop D$ $V(G,D) $ 
     $= \mathbb{E}_{\bold{x} \sim p_{data}} [logD^*_G(\bold{x})] + \mathbb{E}_{\bold{z} \sim p_{\bold{z}}} [1-logD^*_G(G(\bold{z}))]$ 
     $= \mathbb{E}_{\bold{x} \sim p_{data}} [logD^*_G(\bold{x})] + \mathbb{E}_{\bold{z} \sim p_{g}} [1-logD^*_G(\bold{x})]$ 
-    $= \mathbb{E}_{\bold{x} \sim p_{data}({\bold{x}})} [log (p_{data}(\bold{x})/(P_{data}(\bold{x})+ p_{g}(\bold{x})))] + \mathbb{E}_{\bold{z} \sim p_{\bold{z}}({\bold{z}})} [log (p_{g}(\bold{x})/(p_{data}(\bold{x})+ p_{g}(\bold{x})))]$ 
+    $= \mathbb{E}_{\bold{x} \sim p_{data}({\bold{x}})} [log (p_{data}(\bold{x})/(p_{data}(\bold{x})+ p_{g}(\bold{x})))] + \mathbb{E}_{\bold{z} \sim p_{\bold{z}}({\bold{z}})} [log (p_{g}(\bold{x})/(p_{data}(\bold{x})+ p_{g}(\bold{x})))]$ 
 
 #### - Theorem 1 : Lower bound of the global minimum
 virtual training criterion $C(G)$의 global 최솟값의 필요충분 조건은 $p_g = p_\bold{data}$ 이고, 이 지점에서 $C(G)$의 값은 $-log4$이다.
-The global minimum of the virtual training criterion $C(G)$ is achieved if and only if $p_g = p_\bold{data}$. At that point, $C(G)$ achieves the value $-log4$.
+
 
 $Proof$.
-$p_g = p_{data}에 대해 Proposition 1에 의해 D^*_G(\bold{x}) = 1/2$. 따라서 $C(G) = log(1/2) + log(1/2) = -log4$ 임을 알 수 있다. $C(G) = V(D^*_G, G)$에서 위 표현을 가져오면, Jenson-Shannon divergence(JSD)에 의해 
+$p_g = p_{data}$ 에 대해 Proposition 1에 의해 $D^*_G(\bold{x}) = 1/2$이다. 따라서 $C(G) = log(1/2) + log(1/2) = -log4$ 임을 알 수 있다.  위 정리(가설)에서 $C(G) = V(D^*_G, G)$ 로 표현하면, Jenson-Shannon divergence(JSD)에 의해
 $C(G) = -log4 + KL(p_{data}||(p_{data}+ p_{g})/2) + KL(p_{g}||(p_{data}+ p_{g})/2) = -log4 + 2*JSD(p_{data} || p_{g})$ 
 임을 알 수 있다. 두 분포간 Jenson-Shannon divergence 는 항상 0이상이고 두 분포가 동일할 때 0이므로, $C(G)$의 global 최솟값은 $-log4$ 임을 알 수 있다.  
 
