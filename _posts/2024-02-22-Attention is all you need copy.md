@@ -9,13 +9,21 @@ sidebar:              # 페이지 왼쪽에 카테고리 지정
 #search: false # 블로그 내 검색 비활성화
 ---
 
-# Abstract
+# 1. Introduction
+## - Sequence Modeling
 
 
-# 1. Intorduction
+## - Trasduction Problem
+## - Attention Mechanism
+
+RNN, LSTM, g-RNN 등이 sequence modeling 과 transduction 문제에서 좋은 성능을 보임. 
+RNN 모델 구조 설명 : 특징, 한계점
+-> sequence modeling 이란? / transduction problem이란? / attention mechanism 이란?
 
 
 # 2. Background
+기존 NLP 연구들에서 CNN 기반 모델들의 특징
+Self-Attention이란?
 
 
 # 3. Model Architecture
