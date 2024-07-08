@@ -9,7 +9,7 @@ sidebar:              # 페이지 왼쪽에 카테고리 지정
 #search: false # 블로그 내 검색 비활성화
 ---
 # Keywords
-dd
+Transformer, Window, Shifted
 
 
 # 1. Introduction
@@ -47,10 +47,10 @@ image classification, object detection, sementic segmentation 등
 
 # 2.Methods
 ## 2.1. Overall Architecture
-<p align = "center"><img scr = "E:\공부\Github\blog\images\SwinTransformer\figure3.jpg" >
+<p align = "center"><img src = "E:\공부\Github\blog\images\SwinTransformer\figure3.jpg" >
 
 #### - Input
-<p align = "center"><img scr = "E:\공부\Github\blog\images\SwinTransformer\figure3-1.jpg" weight=100 height = 100 >
+<p align = "center"><img src = "E:\공부\Github\blog\images\SwinTransformer\figure3-1.jpg" weight=500 height = 200>
 
 이미지들을 ViT의 patch들처럼 겹치지 않게 각각 RGB채널마다 나눔
 이 떄 각 패치들은 토큰으로 간주되고 이에 대한 feature map은 raw pixel RGB값의 결합?임
@@ -61,8 +61,62 @@ image classification, object detection, sementic segmentation 등
 
 
 #### - Hierarchcial Feature Map
+<p align = "center"><img src = "E:\공부\Github\blog\images\SwinTransformer\figure3-2.jpg" weight=800 height = 200 >
+
+
 이제 전체적인 구성에서 계층적인 feature map을 구성해야 하므로 신경망이 깊어짐에 따라 patch들을 합쳐 토큰의 수를 감소시켜야한다.
 
+Stage1에서 Stage2로 이동하면서 기존 패치들을 2x2로 합침으로써 4C 차원의 feature map을 구성한다.
+따라서 output 차원은 2C가 된다.
+동일하게 각 Stage를 이동할때마다 2x downsampling of resolution을 적용해 Stage3와 Stage4의 해상도는 각각 $\frac{H}{16}$x$\frac{W}{16}$x$4C$, $\frac{H}{32}$x$\frac{W}{32}$x$8C$로 층을 지날수록 감소한다.
+
+이 작업을 통해 제안한 architecture는 일반적인 representation보다 더 계층적인 것을 학습가능하고 차원이 감소한 만큼 연산속도에도 이점이 있다.
+
+
+## 2.2. Shifted Window based Self-Attention
+#### - Swin Transformer Block
+<p align = "left"><img src = "E:\공부\Github\blog\images\SwinTransformer\figure3-3.jpg" weight=100 height = 200>
+<p align = "right"><img src = "E:\공부\Github\blog\images\SwinTransformer\figure3-3-1.jpg" weight=100 height = 200>
+@이거 같은 줄에 이미지 나란히 넣고싶은데 방법 찾아야함@
+
+Swin Transformer는 기존 multi-head self-attention(MSA) 에서 shifted window가 적용된 Transformer Block을 사용한다. 
+ViT의 Transformer Block과의 차이점으로는 2개의 block이 하나로 구성되어 있는데, 첫번째 block은 W-MSA를 사용하고 두번째 block은 SW-MSA(Shifted Winodw MSA)를 사용한다.
+
+#### - Computation Complexity
+기존 ViT는 이미지 전체에 대해 self-attention을 수행하기때문에 연산량이 많이 요구된다. 반면에 Swin은 겹치지않는 window를 이용한 self-attention으로 보다 효율적인 연산이 가능하다. 각 window가 $M$x$M$ 개의 패치를 가지고 이미지의 크기가 $h$x$w$ 라고 가정하자.복잡도 계산시 Softmax 계산은 제외하였을 때, 각각 ViT와 Swin 내 MSA의 복잡도 크기는 다음과 같다. 
+
+$\Omega(MSA)$= $4hwC^2 + 2(hw)^2C$,
+$\Omega(W$-$MSA)$= $4hwC^2 + 2M^2hwC$
+
+이 때, ViT는 $hw$에 대해 quadratic한 식이 구성되지만 Swin은 window의 크기가 고정되어있으니 상수처럼 취급하고 $hw$의 크기에서만 선형적으로 증가하기 때문에 Swin의 연산량이 더 적다는 것을 알 수 있다.
+
+#### - Shifted winodw partitioning in succevie blocks
+window를 이용한 self-attention 모듈은 window 간 상호작용이 부족해 모델링 능력이 제한된다. 이를 보완하기 위해 연속된 Swin Transformer block을 번갈아 사용하는 naive한 shifted window partitioning은 다음과 같다.                                      
+
+<p align = "left"><img src = "E:\공부\Github\blog\images\SwinTransformer\figure2.jpg">
+
+$l$번째 층에서는 왼쪽 위를 기준으로 $M$x$M$ 크기로 윈도우를 분할하고 $\lceil \frac{h}{M} \rceil$x$\lceil \frac{w}{M} \rceil$ 개의 window들에 대해 각각 독립적으로 self-attention을 시행한다. 다음 층인 $l+1$번째 층에서는 $(\lceil \frac{h}{M} \rceil+1)$x$(\lceil \frac{w}{M} \rceil+1)$ 개의 추가적인 window로 나누어 $l$번째 층과 동일하게 self-attention을 시행한다. 이 때 각 window들은 $\lceil \frac{M}{2} \rceil$x$\lceil \frac{M}{2} \rceil$ 만큼 이동해(shifted) self-attention을 시행한다. 이를 그림으로 표현하면 다음과 같다.
+<p align = "center"><img src = "E:\공부\Github\blog\images\SwinTransformer\figure2-1.jpg">
+
+
+#### - Cyclic Shift
+
+위와 같은 naive한 shift의 경우 window의 개수가 2x2에서 3x3로 증가함에 따라 연산량이 2.25배가 되어 윈도우의 크기가 커짐에 따라 연산량이 기하급수적으로 증가한다. 그래서 본 논문에서는 cyclic shift를 제안한다.
+
+<p align = "center"><img src = "E:\공부\Github\blog\images\SwinTransformer\figure4.jpg">
+
+위 그림에서 알 수 있듯이, 이는 기존 분할의 왼쪽 위 부분들을 오른쪽 하단으로 옮기는 것이다. 이 상태에서 self-attention을 시행하면 독립적으로 시행된 self-attetion이 다른 window에도 적용 가능하다.  여기서 A, B, C가 이동하여 window의 개수는 2x2로 유지된 상태로 self-attention이 시행된 것이므로, 중복 attention 연산을 제안하기 위해 masked self-attention을 진행한다.
+
+#### - Computation of Consecutive Blocks
+$\hat{z}^l = W$-$MSA (LN(z^{l-1}))+ z^{l-1}$,
+$z^l = MLP(LN(\hat{z}^{l}))+ \hat{z}^{l}$,
+$\hat{z}^{l+1} = SW$-$MSA (LN(z^{l}))+ z^{l}$,
+$z^{l+1} = MLP(LN(\hat{z}^{l+1}))+ \hat{z}^{l+1}$,
+
+여기서 $z^l$과 $\hat{z}^l$은 각각$l$번째 block에서 $MLP$ 모둘과 $(S)W$-$MSA$의 ouput feature이다.
+
+이렇게 겹치지않는 이웃한 window 간 연결을 이용한 shifted window 분할은 image classification, object detection, semantic segmentation 등 다양한 분야에서 효율적이라는 것을 알 수 있다.
+    -> experiment쪽에 써도 될듯
 
 
 
@@ -71,46 +125,7 @@ image classification, object detection, sementic segmentation 등
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-## 2.2. Objects
-#### - Generative model $G$ 
-원래 데이터 $x$의 분포를 근사할 수 있도록 학습한다. 만약 학습이 잘 되었다면 통계적으로 평균적인 특징을 가지는 데이터를 쉽게 생성 가능하다.
-
-#### - Discriminator model $D$
-데이터가 원래 데이터 $x$의 분포에서 나온 것인지, 아니면 $G$의 분포에서 나온 것인지 판별하도록 학습한다. 출력 결과가 1(진짜) 또는 0(가짜)으로 판별한다.
-
-#### - 목표
-![alt text](figure1.jpg) 
-<p align = "center"><img src = "E:\공부\Github\blog\images\GAN\figure1 설명.jpg" width="150" height = "50">
-
-(a) -> (d) 로 시간의 흐름에 따라 진행하면서 생성 모델의 분포가 원본 데이터의 분포를 학습하는 것을 목표로 한다.
-
-
-## 2.3. Objective Function
-$min \atop G$ $ max \atop D$ $V(D,G) = \mathbb{E}_{\bold{x} \sim p_{data}({\bold{x}})} [logD(\bold{x})] + \mathbb{E}_{\bold{z} \sim p_{\bold{z}}({\bold{z}})} [1-logD(G(\bold{z}))]$ 
-
-$\mathbb{E}_{\bold{x} \sim p_{data}({\bold{x}})} [logD(\bold{x})] $ : 원본 데이터 분포에서 샘플 $x$를 뽑아 $logD(x)$의 기댓값을 계산 
-    -> 원본 데이터가 진짜(1)인지 가짜(0)인지 구분
-    -> $max \atop D$ : 기댓값이 0이 나오도록 구성
-
-$\mathbb{E}_{\bold{z} \sim p_{\bold{z}}({\bold{z}})} [1-logD(G(\bold{z}))]$ : noise variable 분포에서 샘플 $z$를 뽑아 $1-logD(G(z))$의 기댓값을 계산 
-    -> 생성모델을 이용해 만든 이미지가 진짜(1)인지 가짜(0)인지 구분 
-    -> $D(G(z))$ = 1 -> 기댓값 감소, $D(G(z))$ = 0 -> 기댓값 증가
-    -> $min \atop G$ : 기댓값이 0이 나오도록 구성
-
-
-
-# 3. Theoritical Results
+# 3. Experiments
 #### - algorithm 1
 미니배치 최적화 진행 알고리즘
 ![alt text](algorithm1.jpg)
@@ -205,8 +220,4 @@ $G$로 생성한 샘플에 Gaussian Parzen window를 맞추어 이 분포 하에
 
 
 # 참고
-[GAN: Generative Adversarial Networks (꼼꼼한 딥러닝 논문 리뷰와 코드 실습)]
-https://www.youtube.com/watch?v=AVvlDmhHgC4&t=2020s
-
-[Jensen-Shannon Divergence]
-https://ddongwon.tistory.com/118
+https://lcyking.tistory.com/entry/%EB%85%BC%EB%AC%B8%EB%A6%AC%EB%B7%B0-Swin-Transformer-Hierarchical-Vision-Transformer-using-Shifted-Windows
