@@ -40,9 +40,6 @@ window마다 patch 수 고정 -> 선형적인 계산 복잡도가 도출
 효과 1. 층간 연결성으로 인해 모델링 파워 강화
 효과 2. 실제 세계에서의 연산량에 영향 -> experiment 보면 모델의 파워는 비슷한데 연산량은 더 적음
 
-#### - 그래서 어느 분야에서 강점?
-image classification, object detection, sementic segmentation 등
-
 
 
 # 2.Methods

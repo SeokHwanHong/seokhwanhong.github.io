@@ -17,15 +17,15 @@ sidebar:              # 페이지 왼쪽에 카테고리 지정
 * 노이즈 제거 
 
 # 3. Type of Down Sampling
-* #### Decimation
+* #### - Decimation
     균일한 간격으로 픽셀을 제거해 해상도를 감소하는 방법. 간단하지만 Aliasing 문제 발생 가능
-* #### Gaussian blur and subsampling 
+* #### - Gaussian blur and subsampling 
     Gaussian blur를 적용 후 일정 간격으로 픽셀을 선택해 요약하는 방법. 노이즈 변형 대처에 효과적
 
-* #### Pooling
+* #### - Pooling
     한 영역 내에서 평균, 최대값 등을 계산해 데이터를 요약하는 방법.
 
-* #### Atrous(Dilated) Convolution
+* #### - Atrous(Dilated) Convolution
     커널의 크기를 유지하면서 합성곱 연산을 수행하는 기법. 기존 합성곱과 동일한 파라미터 수와 계산량을 유지하면서도 receptive field는 증가 -> semgentation 성능 증가
 
 # 4. Definition : Up Sampling
